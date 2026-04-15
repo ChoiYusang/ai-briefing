@@ -162,19 +162,31 @@ function TermRow({ term, lang, accent }: { term: Term; lang: 'kr' | 'en'; accent
             {lang === 'kr' ? term.termEn : term.termKr}
           </span>
         </div>
-        <span
+        <div
           style={{
-            color: '#C9D0D8',
-            fontSize: 11,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
             flexShrink: 0,
             marginLeft: 8,
-            display: 'inline-block',
-            transition: 'transform 0.2s',
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
           }}
         >
-          ▾
-        </span>
+          <span
+            style={{
+              color: '#C9D0D8',
+              fontSize: 20,
+              display: 'inline-block',
+              transition: 'transform 0.2s',
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              lineHeight: 1,
+            }}
+          >
+            ▾
+          </span>
+          <span style={{ fontSize: 9, color: '#C9D0D8', letterSpacing: '0.02em', marginTop: 1 }}>
+            click
+          </span>
+        </div>
       </button>
       {open && (
         <p
@@ -340,17 +352,30 @@ function ArticleCard({
                     : `${article.terms.length} Terms Explained`}
                 </span>
               </div>
-              <span
+              <div
                 style={{
-                  color: color.accent,
-                  fontSize: 16,
-                  display: 'inline-block',
-                  transition: 'transform 0.2s',
-                  transform: termsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  flexShrink: 0,
                 }}
               >
-                ▾
-              </span>
+                <span
+                  style={{
+                    color: color.accent,
+                    fontSize: 20,
+                    display: 'inline-block',
+                    transition: 'transform 0.2s',
+                    transform: termsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    lineHeight: 1,
+                  }}
+                >
+                  ▾
+                </span>
+                <span style={{ fontSize: 9, color: color.accent, letterSpacing: '0.02em', marginTop: 1 }}>
+                  click
+                </span>
+              </div>
             </button>
 
             {termsOpen && (
