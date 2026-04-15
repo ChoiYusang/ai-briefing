@@ -62,7 +62,6 @@ function TermRow({ term, lang, accent }: { term: Term; lang: 'kr' | 'en'; accent
 
 // ─── 기사 카드 ────────────────────────────────────────────────────────
 function ArticleCard({ article, index, lang }: { article: Article; index: number; lang: 'kr' | 'en' }) {
-  const [summaryExpanded, setSummaryExpanded] = useState(false)
   const [termsOpen, setTermsOpen] = useState(false)
   const [imgError, setImgError] = useState(false)
   const color = PALETTE[index % PALETTE.length]
@@ -71,9 +70,6 @@ function ArticleCard({ article, index, lang }: { article: Article; index: number
   const titleAlt = lang === 'kr' ? article.titleEn : article.titleKr
   const summary = lang === 'kr' ? article.summaryKr : article.summaryEn
   const whyMatters = lang === 'kr' ? article.whyMattersKr : article.whyMattersEn
-
-  const PREVIEW = 240
-  const isLong = summary.length > PREVIEW
 
   const pubDate = article.publishedAt
     ? new Date(article.publishedAt).toLocaleDateString(lang === 'kr' ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' })
@@ -103,8 +99,8 @@ function ArticleCard({ article, index, lang }: { article: Article; index: number
         <img
           src={article.imageUrl!}
           alt={title}
-          className="w-full object-cover"
-          style={{ maxHeight: 220 }}
+          className="w-full"
+          style={{ display: 'block', height: 'auto' }}
           onError={() => setImgError(true)}
         />
       ) : (
@@ -144,19 +140,8 @@ function ArticleCard({ article, index, lang }: { article: Article; index: number
 
         {/* 요약 */}
         <p className="leading-relaxed" style={{ fontSize: 15, color: '#4E5968', lineHeight: 1.8 }}>
-          {summaryExpanded || !isLong ? summary : summary.slice(0, PREVIEW) + '…'}
+          {summary}
         </p>
-        {isLong && (
-          <button
-            onClick={() => setSummaryExpanded(!summaryExpanded)}
-            className="mt-2 text-sm font-semibold"
-            style={{ color: color.border }}
-          >
-            {summaryExpanded
-              ? (lang === 'kr' ? '접기 ↑' : 'Show less ↑')
-              : (lang === 'kr' ? '더 보기 ↓' : 'Read more ↓')}
-          </button>
-        )}
 
         {/* 용어 설명 */}
         {article.terms?.length > 0 && (
