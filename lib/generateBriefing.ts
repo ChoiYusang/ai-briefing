@@ -3,7 +3,16 @@ import { RssItem } from './fetchNews'
 import { Article, DailyBriefing } from './types'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+
+// 최신 모델부터 순서대로 시도 (404 시 다음 모델로 자동 전환)
+const CANDIDATE_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-2.0-flash-exp',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+]
 
 export async function generateDailyBriefing(items: RssItem[]): Promise<DailyBriefing> {
   const itemsText = items
@@ -59,30 +68,42 @@ Return ONLY valid JSON — no markdown, no explanation, no code fences. Exactly 
 Today's articles:
 ${itemsText}`
 
-  const result = await model.generateContent(prompt)
-  const raw = result.response.text().trim()
+  let lastError: unknown
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      console.log(`[generateBriefing] Trying model: ${modelName}`)
+      const model = genAI.getGenerativeModel({ model: modelName })
+      const result = await model.generateContent(prompt)
+      const raw = result.response.text().trim()
 
-  // JSON 블록이 있으면 추출
-  const jsonMatch = raw.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('No JSON found in Gemini response')
+      const jsonMatch = raw.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('No JSON found in response')
 
-  const parsed = JSON.parse(jsonMatch[0])
+      const parsed = JSON.parse(jsonMatch[0])
+      const today = new Date()
+      const dateStr = today.toISOString().split('T')[0]
 
-  const today = new Date()
-  const dateStr = today.toISOString().split('T')[0]
+      const articles: Article[] = parsed.articles.map(
+        (a: Omit<Article, 'id' | 'colorIndex'>, i: number) => ({
+          ...a,
+          id: `${dateStr}-${i}`,
+          colorIndex: i,
+          publishedAt: items.find(item => item.link === a.sourceUrl)?.pubDate || today.toISOString(),
+        })
+      )
 
-  const articles: Article[] = parsed.articles.map(
-    (a: Omit<Article, 'id' | 'colorIndex'>, i: number) => ({
-      ...a,
-      id: `${dateStr}-${i}`,
-      colorIndex: i,
-      publishedAt: items.find(item => item.link === a.sourceUrl)?.pubDate || today.toISOString(),
-    })
-  )
-
-  return {
-    date: dateStr,
-    generatedAt: today.toISOString(),
-    articles,
+      console.log(`[generateBriefing] Success with model: ${modelName}`)
+      return { date: dateStr, generatedAt: today.toISOString(), articles }
+    } catch (err) {
+      const msg = String(err)
+      if (msg.includes('404') || msg.includes('not found') || msg.includes('no longer available')) {
+        console.log(`[generateBriefing] Model ${modelName} unavailable, trying next...`)
+        lastError = err
+        continue
+      }
+      throw err // 404가 아닌 에러는 바로 던짐
+    }
   }
+
+  throw new Error(`All models failed. Last error: ${lastError}`)
 }
