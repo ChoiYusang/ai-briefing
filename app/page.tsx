@@ -107,7 +107,7 @@ function WelcomePopup({ onClose }: { onClose: () => void }) {
               marginTop: 10,
               textAlign: 'center',
               fontSize: 11,
-              color: 'rgba(255,255,255,0.25)',
+              color: '#FFFFFF',
               fontWeight: 500,
               letterSpacing: '-0.1px',
             }}
