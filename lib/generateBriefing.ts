@@ -1,8 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { RssItem } from './fetchNews'
 import { Article, DailyBriefing } from './types'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
 export async function generateDailyBriefing(items: RssItem[]): Promise<DailyBriefing> {
   const itemsText = items
@@ -27,10 +28,10 @@ EXCLUDE: minor product updates, rumors without substance, duplicate coverage, op
 
 For each selected article produce these fields:
 - titleKr: exact Korean translation of the original article title
-- titleEn: original English title (or translate to English if source is Korean)
+- titleEn: original English title
 - summaryKr: exactly 10 flowing sentences in Korean. Written for a smart non-technical reader. Include context, background, and what happened. Narrative prose, NO bullet points.
 - summaryEn: exactly 10 flowing sentences in English. Same depth. Narrative prose, NO bullet points.
-- terms: array of 2-4 technical or AI-specific terms that appear in the article. Each with Korean and English explanations in 1-2 plain-language sentences.
+- terms: array of 2-4 technical or AI-specific terms. Each with Korean and English explanations in 1-2 plain-language sentences.
 - whyMattersKr: 3-4 sentences in Korean. Focus on real-world impact on daily life, jobs, economy, or society.
 - whyMattersEn: 3-4 sentences in English. Same focus.
 - source: name of the publication (e.g. "TechCrunch", "The Verge")
@@ -58,27 +59,26 @@ Return ONLY valid JSON — no markdown, no explanation, no code fences. Exactly 
 Today's articles:
 ${itemsText}`
 
-  const response = await client.messages.create({
-    model: 'claude-opus-4-6',
-    max_tokens: 10000,
-    messages: [{ role: 'user', content: prompt }],
-  })
+  const result = await model.generateContent(prompt)
+  const raw = result.response.text().trim()
 
-  const content = response.content[0]
-  if (content.type !== 'text') throw new Error('Unexpected Claude response type')
+  // JSON 블록이 있으면 추출
+  const jsonMatch = raw.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('No JSON found in Gemini response')
 
-  const raw = content.text.trim()
-  const parsed = JSON.parse(raw)
+  const parsed = JSON.parse(jsonMatch[0])
 
   const today = new Date()
   const dateStr = today.toISOString().split('T')[0]
 
-  const articles: Article[] = parsed.articles.map((a: Omit<Article, 'id' | 'colorIndex'>, i: number) => ({
-    ...a,
-    id: `${dateStr}-${i}`,
-    colorIndex: i,
-    publishedAt: items.find(item => item.link === a.sourceUrl)?.pubDate || today.toISOString(),
-  }))
+  const articles: Article[] = parsed.articles.map(
+    (a: Omit<Article, 'id' | 'colorIndex'>, i: number) => ({
+      ...a,
+      id: `${dateStr}-${i}`,
+      colorIndex: i,
+      publishedAt: items.find(item => item.link === a.sourceUrl)?.pubDate || today.toISOString(),
+    })
+  )
 
   return {
     date: dateStr,
