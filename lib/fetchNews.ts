@@ -6,6 +6,7 @@ const parser = new Parser({
       ['media:content', 'mediaContent'],
       ['media:thumbnail', 'mediaThumbnail'],
       ['enclosure', 'enclosure'],
+      ['content:encoded', 'contentEncoded'],
     ],
   },
   headers: {
@@ -13,6 +14,17 @@ const parser = new Parser({
   },
   timeout: 10000,
 })
+
+// content:encoded 또는 content HTML에서 첫 번째 이미지 URL 추출
+function extractImageFromHtml(html: string): string | undefined {
+  if (!html) return undefined
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i)
+  if (!match) return undefined
+  const url = match[1]
+  // data URI나 tracking pixel 제외
+  if (url.startsWith('data:') || url.includes('pixel') || url.length < 20) return undefined
+  return url
+}
 
 const RSS_FEEDS = [
   // ── 메이저 테크 미디어 ──────────────────────────────────────────
@@ -77,6 +89,8 @@ export async function fetchRecentAINews(): Promise<RssItem[]> {
         (item as any).mediaContent?.$?.url ||
         (item as any).mediaThumbnail?.$?.url ||
         (item as any).enclosure?.url ||
+        extractImageFromHtml((item as any).contentEncoded || '') ||
+        extractImageFromHtml((item as any).content || '') ||
         undefined
 
       allItems.push({
