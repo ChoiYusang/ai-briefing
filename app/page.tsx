@@ -659,17 +659,30 @@ export default function Home() {
           }}
         >
           <div>
-            <p
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                color: '#191F28',
-                letterSpacing: '-0.5px',
-                lineHeight: 1.2,
-              }}
-            >
-              {lang === 'kr' ? 'AI 데일리 브리핑' : 'AI Daily Briefing'}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <p
+                style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  color: '#191F28',
+                  letterSpacing: '-0.5px',
+                  lineHeight: 1.2,
+                }}
+              >
+                {lang === 'kr' ? 'AI 데일리 브리핑' : 'AI Daily Briefing'}
+              </p>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: '#C9D0D8',
+                  fontWeight: 500,
+                  letterSpacing: '-0.1px',
+                  flexShrink: 0,
+                }}
+              >
+                Made By yusang
+              </p>
+            </div>
             <p
               style={{
                 fontSize: 12,
@@ -730,9 +743,6 @@ export default function Home() {
         {/* 상단 정보 바 */}
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
             marginBottom: 14,
             padding: '0 2px',
           }}
@@ -741,18 +751,6 @@ export default function Home() {
             {lang === 'kr'
               ? '매일 오전 9시에 AI를 통해 자동 업데이트 됩니다'
               : 'Auto-updated by AI every morning at 9 AM KST'}
-          </p>
-          <p
-            style={{
-              fontSize: 11,
-              color: '#C9D0D8',
-              letterSpacing: '-0.1px',
-              flexShrink: 0,
-              marginLeft: 8,
-              fontWeight: 500,
-            }}
-          >
-            Made By yusang
           </p>
         </div>
 
