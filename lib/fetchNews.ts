@@ -11,12 +11,31 @@ const parser = new Parser({
   headers: {
     'User-Agent': 'Mozilla/5.0 (compatible; AI-Briefing/1.0)',
   },
+  timeout: 10000,
 })
 
 const RSS_FEEDS = [
-  'https://news.google.com/rss/search?q=artificial+intelligence+AI+LLM&hl=en-US&gl=US&ceid=US:en',
+  // ── 메이저 테크 미디어 ──────────────────────────────────────────
   'https://techcrunch.com/category/artificial-intelligence/feed/',
-  'https://feeds.feedburner.com/venturebeat/SZYF',
+  'https://www.theverge.com/ai-artificial-intelligence/rss/index.xml',
+  'https://www.wired.com/feed/tag/artificial-intelligence/rss',
+  'https://thenextweb.com/feed/',
+  'https://venturebeat.com/category/ai/feed/',
+
+  // ── AI 전문 미디어 ───────────────────────────────────────────────
+  'https://www.artificialintelligence-news.com/feed/',
+  'https://aimagazine.com/rss.xml',
+
+  // ── 주요 AI 기업 공식 블로그 ─────────────────────────────────────
+  'https://openai.com/news/rss.xml',
+  'https://www.anthropic.com/news/rss',
+  'https://blog.google/technology/ai/rss/',
+
+  // ── 학술·연구 중심 ───────────────────────────────────────────────
+  'https://news.mit.edu/topic/artificial-intelligence2/rss',
+
+  // ── 광범위 수집용 (구글 뉴스 AI 검색) ────────────────────────────
+  'https://news.google.com/rss/search?q=artificial+intelligence+AI&hl=en-US&gl=US&ceid=US:en&tbs=qdr:d',
 ]
 
 export interface RssItem {
@@ -25,42 +44,54 @@ export interface RssItem {
   pubDate: string
   description: string
   imageUrl?: string
+  source?: string
 }
 
 export async function fetchRecentAINews(): Promise<RssItem[]> {
   const allItems: RssItem[] = []
   const seen = new Set<string>()
-  const cutoff = new Date(Date.now() - 28 * 60 * 60 * 1000) // 28h buffer
+  const cutoff = new Date(Date.now() - 28 * 60 * 60 * 1000) // 28h 버퍼
 
-  for (const feedUrl of RSS_FEEDS) {
-    try {
-      const feed = await parser.parseURL(feedUrl)
-      for (const item of feed.items) {
-        const pubDate = new Date(item.pubDate || Date.now())
-        if (pubDate < cutoff) continue
-        if (!item.title || seen.has(item.title)) continue
-        seen.add(item.title)
+  const results = await Promise.allSettled(
+    RSS_FEEDS.map(feedUrl => parser.parseURL(feedUrl))
+  )
 
-        const imageUrl =
-          (item as any).mediaContent?.$?.url ||
-          (item as any).mediaThumbnail?.$?.url ||
-          (item as any).enclosure?.url ||
-          undefined
-
-        allItems.push({
-          title: item.title,
-          link: item.link || '',
-          pubDate: item.pubDate || new Date().toISOString(),
-          description: item.contentSnippet || item.summary || '',
-          imageUrl,
-        })
-      }
-    } catch (err) {
-      console.error(`[fetchNews] Failed to fetch ${feedUrl}:`, err)
+  results.forEach((result, i) => {
+    if (result.status === 'rejected') {
+      console.error(`[fetchNews] Failed: ${RSS_FEEDS[i]} — ${result.reason}`)
+      return
     }
-  }
 
-  // Sort newest first, cap at 25 for Claude
+    const feed = result.value
+    const sourceName = feed.title || RSS_FEEDS[i]
+
+    for (const item of feed.items) {
+      const pubDate = new Date(item.pubDate || Date.now())
+      if (pubDate < cutoff) continue
+
+      const title = (item.title || '').trim()
+      if (!title || seen.has(title.toLowerCase())) continue
+      seen.add(title.toLowerCase())
+
+      const imageUrl =
+        (item as any).mediaContent?.$?.url ||
+        (item as any).mediaThumbnail?.$?.url ||
+        (item as any).enclosure?.url ||
+        undefined
+
+      allItems.push({
+        title,
+        link: item.link || '',
+        pubDate: item.pubDate || new Date().toISOString(),
+        description: item.contentSnippet || item.summary || '',
+        imageUrl,
+        source: sourceName,
+      })
+    }
+  })
+
+  // 최신순 정렬 후 상위 40개 → Gemini에 전달
   allItems.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-  return allItems.slice(0, 25)
+  console.log(`[fetchNews] Collected ${allItems.length} unique items from ${RSS_FEEDS.length} feeds`)
+  return allItems.slice(0, 40)
 }
