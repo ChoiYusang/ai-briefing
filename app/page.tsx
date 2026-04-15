@@ -343,7 +343,7 @@ function ArticleCard({
               <span
                 style={{
                   color: color.accent,
-                  fontSize: 11,
+                  fontSize: 16,
                   display: 'inline-block',
                   transition: 'transform 0.2s',
                   transform: termsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
