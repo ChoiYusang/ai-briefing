@@ -41,33 +41,46 @@ function WelcomePopup({ onClose }: { onClose: () => void }) {
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
+      {/* 배경 딤 */}
       <div
         style={{
           position: 'fixed',
-          bottom: 28,
-          right: 18,
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          zIndex: 998,
+        }}
+        onClick={onClose}
+      />
+
+      {/* 팝업 카드 */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
           zIndex: 999,
-          maxWidth: 268,
+          width: 'calc(100% - 48px)',
+          maxWidth: 320,
           animation: 'popupIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both',
         }}
       >
         <div
           style={{
             backgroundColor: '#191F28',
-            borderRadius: 18,
-            padding: '18px 18px 14px',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.22)',
-            position: 'relative',
+            borderRadius: 20,
+            padding: '24px 20px 20px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
           }}
         >
           {/* 이모지 */}
-          <p style={{ fontSize: 24, marginBottom: 10 }}>🤖</p>
+          <p style={{ fontSize: 28, marginBottom: 12 }}>🤖</p>
 
           {/* 본문 */}
           <p
             style={{
               color: '#E8EBF0',
-              fontSize: 14,
+              fontSize: 15,
               lineHeight: 1.65,
               fontWeight: 500,
               letterSpacing: '-0.3px',
@@ -78,56 +91,41 @@ function WelcomePopup({ onClose }: { onClose: () => void }) {
             자동 업데이트 됩니다
           </p>
 
-          {/* 닫기 버튼 */}
-          <button
-            onClick={onClose}
-            style={{
-              marginTop: 14,
-              width: '100%',
-              backgroundColor: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.10)',
-              color: 'rgba(255,255,255,0.55)',
-              padding: '9px 0',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              letterSpacing: '-0.2px',
-              transition: 'background-color 0.15s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.14)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.08)' }}
-          >
-            닫기
-          </button>
-
-          {/* Made By yusang */}
-          <p
-            style={{
-              marginTop: 10,
-              textAlign: 'center',
-              fontSize: 11,
-              color: '#FFFFFF',
-              fontWeight: 500,
-              letterSpacing: '-0.1px',
-            }}
-          >
-            Made By yusang
-          </p>
-
-          {/* 말풍선 꼬리 */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: -9,
-              right: 32,
-              width: 0,
-              height: 0,
-              borderLeft: '9px solid transparent',
-              borderRight: '9px solid transparent',
-              borderTop: '9px solid #191F28',
-            }}
-          />
+          {/* Made By yusang + 닫기 버튼 */}
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: '#FFFFFF',
+                  fontWeight: 500,
+                  letterSpacing: '-0.1px',
+                }}
+              >
+                Made By yusang
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                width: '100%',
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                color: 'rgba(255,255,255,0.55)',
+                padding: '10px 0',
+                borderRadius: 12,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                letterSpacing: '-0.2px',
+                transition: 'background-color 0.15s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.14)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.08)' }}
+            >
+              닫기
+            </button>
+          </div>
         </div>
       </div>
     </>
