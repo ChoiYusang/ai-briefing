@@ -678,7 +678,9 @@ export default function Home() {
           backgroundColor: 'rgba(49,130,246,0.96)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.12)',
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
+          boxShadow: '0 4px 16px rgba(49,130,246,0.30)',
           zIndex: 500,
         }}
       >
