@@ -1,4 +1,4 @@
-import { put, list, download } from '@vercel/blob'
+import { put, list } from '@vercel/blob'
 import { DailyBriefing } from './types'
 
 const PREFIX = 'briefings/'
@@ -20,7 +20,13 @@ export async function getBriefing(): Promise<DailyBriefing | null> {
     blobs.sort((a, b) => b.pathname.localeCompare(a.pathname))
     const latest = blobs[0]
 
-    const res = await download(latest.url)
+    // private blob은 list()가 반환하는 downloadUrl(서명된 URL) 사용
+    const fetchUrl = (latest as any).downloadUrl || latest.url
+    const res = await fetch(fetchUrl, {
+      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
     return res.json()
   } catch (err) {
     console.error('[storage] getBriefing error:', err)
