@@ -681,7 +681,7 @@ export default function Home() {
                   lineHeight: 1.2,
                 }}
               >
-                {lang === 'kr' ? 'AI 데일리 브리핑' : 'AI Daily Briefing'}
+                {lang === 'kr' ? '오늘의 AI 이슈' : "Today's AI Issues"}
               </p>
               <p
                 style={{
@@ -800,7 +800,7 @@ export default function Home() {
                   letterSpacing: '-0.5px',
                 }}
               >
-                {briefing.articles.length}
+                {briefing.articles.length}개
               </span>
             </div>
             <div>
@@ -825,7 +825,7 @@ export default function Home() {
                 }}
               >
                 {lang === 'kr'
-                  ? '이 동안 발생한 핵심 AI 이슈에요'
+                  ? '위 시간 동안 새롭게 발생한 AI 이슈에요'
                   : 'Key AI stories from this period'}
               </p>
             </div>
