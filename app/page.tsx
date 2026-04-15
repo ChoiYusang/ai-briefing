@@ -41,26 +41,25 @@ function WelcomePopup({ onClose }: { onClose: () => void }) {
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
-      {/* 배경 딤 */}
+      {/* 배경 딤 + 중앙 정렬 컨테이너 */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
           backgroundColor: 'rgba(0,0,0,0.45)',
           zIndex: 998,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '0 24px',
         }}
         onClick={onClose}
-      />
-
+      >
       {/* 팝업 카드 */}
       <div
+        onClick={e => e.stopPropagation()}
         style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 999,
-          width: 'calc(100% - 48px)',
+          width: '100%',
           maxWidth: 320,
           animation: 'popupIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both',
         }}
@@ -127,6 +126,7 @@ function WelcomePopup({ onClose }: { onClose: () => void }) {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </>
   )
@@ -675,10 +675,10 @@ export default function Home() {
           top: 0,
           left: 0,
           right: 0,
-          backgroundColor: 'rgba(255,255,255,0.90)',
+          backgroundColor: 'rgba(49,130,246,0.96)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid #F2F4F6',
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
           zIndex: 500,
         }}
       >
@@ -699,7 +699,7 @@ export default function Home() {
                 style={{
                   fontSize: 18,
                   fontWeight: 800,
-                  color: '#191F28',
+                  color: '#FFFFFF',
                   letterSpacing: '-0.5px',
                   lineHeight: 1.2,
                 }}
@@ -709,7 +709,7 @@ export default function Home() {
               <p
                 style={{
                   fontSize: 11,
-                  color: '#C9D0D8',
+                  color: 'rgba(255,255,255,0.60)',
                   fontWeight: 500,
                   letterSpacing: '-0.1px',
                   flexShrink: 0,
@@ -721,7 +721,7 @@ export default function Home() {
             <p
               style={{
                 fontSize: 12,
-                color: '#8B95A1',
+                color: 'rgba(255,255,255,0.65)',
                 marginTop: 2,
                 letterSpacing: '-0.2px',
               }}
@@ -734,7 +734,7 @@ export default function Home() {
           <div
             style={{
               display: 'flex',
-              backgroundColor: '#F2F4F6',
+              backgroundColor: 'rgba(255,255,255,0.18)',
               borderRadius: 24,
               padding: 3,
               flexShrink: 0,
@@ -756,12 +756,12 @@ export default function Home() {
                   ...(lang === l
                     ? {
                         backgroundColor: '#FFFFFF',
-                        color: '#191F28',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+                        color: '#3182F6',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
                       }
                     : {
                         backgroundColor: 'transparent',
-                        color: '#8B95A1',
+                        color: 'rgba(255,255,255,0.70)',
                       }),
                 }}
               >
