@@ -5,10 +5,9 @@ const PREFIX = 'briefings/'
 
 export async function saveBriefing(briefing: DailyBriefing): Promise<void> {
   await put(`${PREFIX}${briefing.date}.json`, JSON.stringify(briefing), {
-    access: 'private',
+    access: 'public',
     contentType: 'application/json',
     addRandomSuffix: false,
-    allowOverwrite: true,
   })
 }
 
@@ -18,14 +17,7 @@ export async function getBriefing(): Promise<DailyBriefing | null> {
     if (blobs.length === 0) return null
 
     blobs.sort((a, b) => b.pathname.localeCompare(a.pathname))
-    const latest = blobs[0]
-
-    // private blob은 list()가 반환하는 downloadUrl(서명된 URL) 사용
-    const fetchUrl = (latest as any).downloadUrl || latest.url
-    const res = await fetch(fetchUrl, {
-      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-      cache: 'no-store',
-    })
+    const res = await fetch(blobs[0].url, { cache: 'no-store' })
     if (!res.ok) return null
     return res.json()
   } catch (err) {
