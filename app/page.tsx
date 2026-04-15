@@ -622,13 +622,11 @@ export default function Home() {
         setLoading(false)
       })
 
-    // 첫 방문 팝업
-    const dismissed = localStorage.getItem('ai-briefing-popup-v1')
-    if (!dismissed) setShowPopup(true)
+    // 매 방문마다 팝업 표시
+    setShowPopup(true)
   }, [])
 
   const handleClosePopup = () => {
-    localStorage.setItem('ai-briefing-popup-v1', '1')
     setShowPopup(false)
   }
 
