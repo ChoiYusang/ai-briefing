@@ -4,7 +4,6 @@ import { Article, DailyBriefing } from './types'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-// 최신 모델부터 순서대로 시도 (404 시 다음 모델로 자동 전환)
 const CANDIDATE_MODELS = [
   'gemini-2.5-flash',
   'gemini-2.5-pro',
@@ -18,7 +17,7 @@ export async function generateDailyBriefing(items: RssItem[]): Promise<DailyBrie
   const itemsText = items
     .map(
       (item, i) =>
-        `[${i + 1}]\nTitle: ${item.title}\nURL: ${item.link}\nDate: ${item.pubDate}\nDescription: ${item.description}`
+        `[${i + 1}]\nTitle: ${item.title}\nURL: ${item.link}\nDate: ${item.pubDate}\nDescription: ${item.description}${item.imageUrl ? `\nImage: ${item.imageUrl}` : ''}`
     )
     .join('\n\n')
 
@@ -38,20 +37,26 @@ EXCLUDE: minor product updates, rumors without substance, duplicate coverage, op
 For each selected article produce these fields:
 - titleKr: exact Korean translation of the original article title
 - titleEn: original English title
-- summaryKr: exactly 10 flowing sentences in Korean. Written for a smart non-technical reader. Include context, background, and what happened. Narrative prose, NO bullet points.
+- imageUrl: if the article's image URL is available in the input data, include it here. Otherwise return null.
+- summaryKr: exactly 10 flowing sentences in Korean. Written for a smart non-technical reader with zero tech background. Include full context and background as if explaining to a friend. Narrative prose, NO bullet points.
 - summaryEn: exactly 10 flowing sentences in English. Same depth. Narrative prose, NO bullet points.
-- terms: array of 2-4 technical or AI-specific terms. Each with Korean and English explanations in 1-2 plain-language sentences.
-- whyMattersKr: 3-4 sentences in Korean. Focus on real-world impact on daily life, jobs, economy, or society.
+- terms: array of 4 to 6 technical or AI-specific terms or concepts that appear in or are relevant to this article. These should be terms a non-technical Korean reader would NOT know. For each term provide:
+  - termKr: the term in Korean (or transliterated)
+  - termEn: the term in English
+  - explanationKr: 2 sentences in plain Korean. Use everyday analogies. No jargon.
+  - explanationEn: 2 sentences in plain English. Use everyday analogies. No jargon.
+- whyMattersKr: 3-4 sentences in Korean. Real-world impact on daily life, jobs, economy, or society. Be specific and concrete.
 - whyMattersEn: 3-4 sentences in English. Same focus.
-- source: name of the publication (e.g. "TechCrunch", "The Verge")
+- source: name of the publication
 - sourceUrl: the article URL
 
-Return ONLY valid JSON — no markdown, no explanation, no code fences. Exactly this shape:
+Return ONLY valid JSON — no markdown, no explanation, no code fences:
 {
   "articles": [
     {
       "titleKr": "...",
       "titleEn": "...",
+      "imageUrl": "..." or null,
       "summaryKr": "...",
       "summaryEn": "...",
       "terms": [
@@ -86,6 +91,7 @@ ${itemsText}`
       const articles: Article[] = parsed.articles.map(
         (a: Omit<Article, 'id' | 'colorIndex'>, i: number) => ({
           ...a,
+          imageUrl: a.imageUrl || items.find(item => item.link === a.sourceUrl)?.imageUrl || null,
           id: `${dateStr}-${i}`,
           colorIndex: i,
           publishedAt: items.find(item => item.link === a.sourceUrl)?.pubDate || today.toISOString(),
@@ -101,7 +107,7 @@ ${itemsText}`
         lastError = err
         continue
       }
-      throw err // 404가 아닌 에러는 바로 던짐
+      throw err
     }
   }
 
