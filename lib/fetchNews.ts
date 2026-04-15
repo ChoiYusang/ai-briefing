@@ -93,10 +93,19 @@ export async function fetchRecentAINews(): Promise<RssItem[]> {
         extractImageFromHtml((item as any).content || '') ||
         undefined
 
+      // Google News RSS 전용 URL → 브라우저에서 열 수 있는 일반 URL로 변환
+      let link = item.link || ''
+      if (link.includes('news.google.com/rss/articles/')) {
+        link = link.replace('/rss/articles/', '/articles/').replace(/[?&]oc=\d+/, '')
+      }
+
+      // pubDate가 없는 기사는 실제 발행일을 알 수 없으므로 제외
+      if (!item.pubDate) continue
+
       allItems.push({
         title,
-        link: item.link || '',
-        pubDate: item.pubDate || new Date().toISOString(),
+        link,
+        pubDate: item.pubDate,
         description: item.contentSnippet || item.summary || '',
         imageUrl,
         source: sourceName,
