@@ -101,6 +101,20 @@ function WelcomePopup({ onClose }: { onClose: () => void }) {
             닫기
           </button>
 
+          {/* Made By yusang */}
+          <p
+            style={{
+              marginTop: 10,
+              textAlign: 'center',
+              fontSize: 11,
+              color: 'rgba(255,255,255,0.25)',
+              fontWeight: 500,
+              letterSpacing: '-0.1px',
+            }}
+          >
+            Made By yusang
+          </p>
+
           {/* 말풍선 꼬리 */}
           <div
             style={{
