@@ -85,19 +85,16 @@ export async function fetchRecentAINews(): Promise<RssItem[]> {
       if (!title || seen.has(title.toLowerCase())) continue
       seen.add(title.toLowerCase())
 
+      const mediaContent = (item as any).mediaContent
       const imageUrl =
-        (item as any).mediaContent?.$?.url ||
+        (Array.isArray(mediaContent) ? mediaContent[0]?.$?.url : mediaContent?.$?.url) ||
         (item as any).mediaThumbnail?.$?.url ||
         (item as any).enclosure?.url ||
         extractImageFromHtml((item as any).contentEncoded || '') ||
         extractImageFromHtml((item as any).content || '') ||
         undefined
 
-      // Google News RSS 전용 URL → 브라우저에서 열 수 있는 일반 URL로 변환
-      let link = item.link || ''
-      if (link.includes('news.google.com/rss/articles/')) {
-        link = link.replace('/rss/articles/', '/articles/').replace(/[?&]oc=\d+/, '')
-      }
+      const link = item.link || ''
 
       // pubDate가 없는 기사는 실제 발행일을 알 수 없으므로 제외
       if (!item.pubDate) continue

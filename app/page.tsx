@@ -246,7 +246,7 @@ function ArticleCard({
       {hasImage && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={article.imageUrl!}
+          src={`/api/img?url=${encodeURIComponent(article.imageUrl!)}`}
           alt={title}
           style={{ width: '100%', height: 'auto', display: 'block' }}
           onError={() => setImgError(true)}
