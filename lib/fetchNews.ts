@@ -46,9 +46,11 @@ const RSS_FEEDS = [
   // ── 학술·연구 중심 ───────────────────────────────────────────────
   'https://news.mit.edu/topic/artificial-intelligence2/rss',
 
-  // ── 광범위 수집용 (구글 뉴스 AI 검색) ────────────────────────────
-  'https://news.google.com/rss/search?q=artificial+intelligence+AI&hl=en-US&gl=US&ceid=US:en&tbs=qdr:d',
+  // ── 추가 AI 전문 미디어 ───────────────────────────────────────────
+  'https://www.technologyreview.com/feed/',
+  'https://www.zdnet.com/topic/artificial-intelligence/rss.xml',
 ]
+// ※ Google News RSS는 이미지 없음 + 리다이렉션 오류로 제외
 
 export interface RssItem {
   title: string
