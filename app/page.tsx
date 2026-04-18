@@ -928,7 +928,9 @@ export default function Home() {
                     <p style={{ fontSize: 13, color: '#4E5968', letterSpacing: '-0.2px', lineHeight: 1.5 }}>
                       Safari{' '}
                       <span style={{ color: '#B0B8C1' }}>→</span>{' '}
-                      <span style={{ fontWeight: 600, color: '#191F28' }}>공유 □↑</span>{' '}
+                      <span style={{ fontWeight: 600, color: '#191F28' }}>더보기(우측 하단 점 세개)</span>{' '}
+                      <span style={{ color: '#B0B8C1' }}>→</span>{' '}
+                      <span style={{ fontWeight: 600, color: '#191F28' }}>공유↑</span>{' '}
                       <span style={{ color: '#B0B8C1' }}>→</span>{' '}
                       <span style={{ fontWeight: 600, color: '#191F28' }}>홈 화면에 추가</span>
                     </p>
