@@ -135,17 +135,30 @@ function WelcomePopup({ onClose }: { onClose: () => void }) {
 // ─── 용어 하이라이트 ──────────────────────────────────────────────────
 function highlightTerms(text: string, terms: Term[]): React.ReactNode {
   if (!terms?.length) return text
-  const words = terms.flatMap(t => [t.termKr, t.termEn]).filter(Boolean)
+  const words = terms
+    .flatMap(t => [t.termKr, t.termEn])
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length) // 긴 단어 먼저 매칭
   if (!words.length) return text
+
   const escaped = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   const pattern = new RegExp(`(${escaped.join('|')})`, 'gi')
-  const parts = text.split(pattern)
-  const termSet = new Set(words.map(w => w.toLowerCase()))
-  return parts.map((part, i) =>
-    termSet.has(part.toLowerCase())
-      ? <strong key={i} style={{ fontWeight: 700, color: '#191F28' }}>{part}</strong>
-      : part
-  )
+
+  const result: React.ReactNode[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) result.push(text.slice(lastIndex, match.index))
+    result.push(
+      <strong key={match.index} style={{ fontWeight: 700, color: '#191F28' }}>
+        {match[0]}
+      </strong>
+    )
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < text.length) result.push(text.slice(lastIndex))
+  return result.length ? result : text
 }
 
 // ─── 용어 행 ──────────────────────────────────────────────────────────
