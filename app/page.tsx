@@ -893,6 +893,75 @@ export default function Home() {
             {/* 목차 */}
             <TableOfContents articles={briefing.articles} lang={lang} />
 
+            {/* PWA 설치 안내 */}
+            <div
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 20,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                padding: '16px 20px',
+              }}
+            >
+              <div className="flex items-center gap-2" style={{ marginBottom: 12 }}>
+                <span style={{ fontSize: 18 }}>📲</span>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#191F28', letterSpacing: '-0.3px' }}>
+                  {lang === 'kr' ? '홈 화면에 추가하면 앱처럼 이용할 수 있어요' : 'Add to home screen to use like an app'}
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* iPhone */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    backgroundColor: '#F8F9FA',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                  }}
+                >
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>🍎</span>
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#8B95A1', marginBottom: 3, letterSpacing: '0.04em' }}>
+                      iPhone
+                    </p>
+                    <p style={{ fontSize: 13, color: '#4E5968', letterSpacing: '-0.2px', lineHeight: 1.5 }}>
+                      Safari{' '}
+                      <span style={{ color: '#B0B8C1' }}>→</span>{' '}
+                      <span style={{ fontWeight: 600, color: '#191F28' }}>공유 □↑</span>{' '}
+                      <span style={{ color: '#B0B8C1' }}>→</span>{' '}
+                      <span style={{ fontWeight: 600, color: '#191F28' }}>홈 화면에 추가</span>
+                    </p>
+                  </div>
+                </div>
+                {/* Galaxy / Android */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    backgroundColor: '#F8F9FA',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                  }}
+                >
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>🤖</span>
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#8B95A1', marginBottom: 3, letterSpacing: '0.04em' }}>
+                      Galaxy / Android
+                    </p>
+                    <p style={{ fontSize: 13, color: '#4E5968', letterSpacing: '-0.2px', lineHeight: 1.5 }}>
+                      Chrome{' '}
+                      <span style={{ color: '#B0B8C1' }}>→</span>{' '}
+                      <span style={{ fontWeight: 600, color: '#191F28' }}>메뉴 ⋮</span>{' '}
+                      <span style={{ color: '#B0B8C1' }}>→</span>{' '}
+                      <span style={{ fontWeight: 600, color: '#191F28' }}>홈 화면에 추가</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* 구분선 */}
             <div
               className="flex items-center gap-3"
