@@ -132,6 +132,22 @@ function WelcomePopup({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ─── 용어 하이라이트 ──────────────────────────────────────────────────
+function highlightTerms(text: string, terms: Term[]): React.ReactNode {
+  if (!terms?.length) return text
+  const words = terms.flatMap(t => [t.termKr, t.termEn]).filter(Boolean)
+  if (!words.length) return text
+  const escaped = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const pattern = new RegExp(`(${escaped.join('|')})`, 'gi')
+  const parts = text.split(pattern)
+  const termSet = new Set(words.map(w => w.toLowerCase()))
+  return parts.map((part, i) =>
+    termSet.has(part.toLowerCase())
+      ? <strong key={i} style={{ fontWeight: 700, color: '#191F28' }}>{part}</strong>
+      : part
+  )
+}
+
 // ─── 용어 행 ──────────────────────────────────────────────────────────
 function TermRow({ term, lang, accent }: { term: Term; lang: 'kr' | 'en'; accent: string }) {
   const [open, setOpen] = useState(false)
@@ -317,7 +333,7 @@ function ArticleCard({
             letterSpacing: '-0.2px',
           }}
         >
-          {summary}
+          {highlightTerms(summary, article.terms)}
         </p>
 
         {/* 용어 설명 */}
@@ -424,7 +440,7 @@ function ArticleCard({
               letterSpacing: '-0.2px',
             }}
           >
-            {whyMatters}
+            {highlightTerms(whyMatters, article.terms)}
           </p>
         </div>
 
