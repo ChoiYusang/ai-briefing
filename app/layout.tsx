@@ -5,6 +5,15 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'AI 데일리 브리핑',
   description: '매일 아침 AI 핵심 뉴스를 한눈에',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'AI 브리핑',
+  },
+  icons: {
+    apple: '/icons/icon-192x192.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

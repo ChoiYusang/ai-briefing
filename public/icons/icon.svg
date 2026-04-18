@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#1e3a6e"/>
+  <rect x="30" y="30" width="452" height="452" rx="60" fill="#2563eb"/>
+  <text x="256" y="220" font-family="Arial, sans-serif" font-weight="900" font-size="130" fill="white" text-anchor="middle" dominant-baseline="middle">AI</text>
+  <text x="256" y="340" font-family="Arial, sans-serif" font-weight="700" font-size="58" fill="#93c5fd" text-anchor="middle" dominant-baseline="middle">DAILY</text>
+  <line x1="130" y1="270" x2="382" y2="270" stroke="#60a5fa" stroke-width="4" stroke-linecap="round"/>
+</svg>

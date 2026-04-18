@@ -5,3 +5,5 @@ node_modules/
 *.log
 
 .vercel
+public/sw.js
+public/workbox-*.js
