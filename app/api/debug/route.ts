@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchRecentAINews } from '@/lib/fetchNews'
 import { generateDailyBriefing } from '@/lib/generateBriefing'
+import { saveBriefing } from '@/lib/storage'
 
 // 임시 진단용 엔드포인트 — 원인 파악 후 삭제 예정
 export const dynamic = 'force-dynamic'
@@ -32,6 +33,16 @@ export async function GET(request: NextRequest) {
         ok: true,
         date: briefing.date,
         articleCount: briefing.articles.length,
+      }
+
+      // 생성에 성공하면 오늘 누락분을 바로 저장(백필)
+      if (request.nextUrl.searchParams.get('save') === '1') {
+        try {
+          await saveBriefing(briefing)
+          report.save = { ok: true, date: briefing.date }
+        } catch (err) {
+          report.save = { ok: false, error: String(err) }
+        }
       }
     } catch (err) {
       report.generateBriefing = {
