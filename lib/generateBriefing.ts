@@ -1,17 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { RssItem } from './fetchNews'
+import { generateJson } from './gemini'
 import { Article, DailyBriefing } from './types'
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-
-const CANDIDATE_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
-  'gemini-2.0-flash-exp',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-]
 
 export async function generateDailyBriefing(items: RssItem[]): Promise<DailyBriefing> {
   const itemsText = items
@@ -40,6 +29,11 @@ Write like a smart, well-informed friend casually explaining the news over coffe
 - English: Conversational but sharp. Like a knowledgeable friend, not a news anchor.
 - 어렵고 복잡한 내용도 "쉽게 말하면", "한마디로", "핵심은" 같은 표현으로 자연스럽게 연결해요.
 - 독자가 AI를 전혀 모르는 지인이라고 생각하고, 흥미롭게 설명해 주세요.
+
+ENGLISH-LEARNER NOTE:
+Korean readers also read the English version to study English. Keep summaryEn / whyMattersEn in
+clear, natural, idiomatic English with complete sentences — no fragments, no headline-speak.
+Do not dumb the English down; just keep it clean and well-formed.
 
 For each selected article produce these fields:
 - titleKr: exact Korean translation of the original article title
@@ -80,80 +74,27 @@ Return ONLY valid JSON — no markdown, no explanation, no code fences:
 Today's articles:
 ${itemsText}`
 
-  let lastError: unknown
-  for (const modelName of CANDIDATE_MODELS) {
-    try {
-      const parsed = await generateWithRetry(modelName, prompt)
-      const today = new Date()
-      const dateStr = today.toISOString().split('T')[0]
+  const parsed = await generateJson(prompt, {
+    label: 'generateBriefing',
+    validate: p => {
+      if (!Array.isArray(p?.articles) || p.articles.length === 0) {
+        throw new Error('Response has no articles')
+      }
+    },
+  })
 
-      const articles: Article[] = parsed.articles.map(
-        (a: Omit<Article, 'id' | 'colorIndex'>, i: number) => ({
-          ...a,
-          imageUrl: a.imageUrl || items.find(item => item.link === a.sourceUrl)?.imageUrl || null,
-          id: `${dateStr}-${i}`,
-          colorIndex: i,
-          publishedAt: items.find(item => item.link === a.sourceUrl)?.pubDate || today.toISOString(),
-        })
-      )
+  const today = new Date()
+  const dateStr = today.toISOString().split('T')[0]
 
-      console.log(`[generateBriefing] Success with model: ${modelName}`)
-      return { date: dateStr, generatedAt: today.toISOString(), articles }
-    } catch (err) {
-      // 재시도까지 한 뒤에도 이 모델이 실패하면 다음 후보 모델로 넘어간다.
-      console.log(
-        `[generateBriefing] Model ${modelName} failed after retries — trying next. ${String(err).slice(0, 200)}`
-      )
-      lastError = err
-      continue
-    }
-  }
+  const articles: Article[] = parsed.articles.map(
+    (a: Omit<Article, 'id' | 'colorIndex'>, i: number) => ({
+      ...a,
+      imageUrl: a.imageUrl || items.find(item => item.link === a.sourceUrl)?.imageUrl || null,
+      id: `${dateStr}-${i}`,
+      colorIndex: i,
+      publishedAt: items.find(item => item.link === a.sourceUrl)?.pubDate || today.toISOString(),
+    })
+  )
 
-  throw new Error(`All models failed. Last error: ${lastError}`)
-}
-
-// 일시적(503 과부하 / 429 / 5xx / 네트워크 / 일회성 JSON 파싱) 실패는
-// 지수 backoff로 재시도한다. 모델 부재(404)·인증 오류는 재시도해도 의미가 없어 즉시 포기.
-// 반환 타입은 원본(JSON.parse → any)과 동일하게 느슨히 둔다.
-// (parsed.articles 매핑의 imageUrl null 허용 등 기존 동작을 그대로 보존)
-async function generateWithRetry(
-  modelName: string,
-  prompt: string,
-  maxRetries = 3
-): Promise<any> {
-  let lastError: unknown
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`[generateBriefing] ${modelName} attempt ${attempt + 1}/${maxRetries + 1}`)
-      const model = genAI.getGenerativeModel({ model: modelName })
-      const result = await model.generateContent(prompt)
-      const raw = result.response.text().trim()
-
-      const jsonMatch = raw.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) throw new Error('No JSON found in response')
-
-      return JSON.parse(jsonMatch[0])
-    } catch (err) {
-      const msg = String(err)
-      // 재시도해도 소용없는 오류는 즉시 throw (상위 루프가 다음 모델로 넘어감)
-      const nonRetryable =
-        msg.includes('404') ||
-        msg.includes('not found') ||
-        msg.includes('no longer available') ||
-        msg.includes('API key') ||
-        msg.includes('API_KEY') ||
-        msg.includes('PERMISSION_DENIED') ||
-        msg.includes('401') ||
-        msg.includes('403')
-      if (nonRetryable || attempt === maxRetries) throw err
-
-      lastError = err
-      const delayMs = Math.min(2000 * 2 ** attempt, 20000) // 2s, 4s, 8s … (최대 20s)
-      console.log(
-        `[generateBriefing] ${modelName} transient error, retrying in ${delayMs}ms — ${msg.slice(0, 150)}`
-      )
-      await new Promise(resolve => setTimeout(resolve, delayMs))
-    }
-  }
-  throw lastError
+  return { date: dateStr, generatedAt: today.toISOString(), articles }
 }

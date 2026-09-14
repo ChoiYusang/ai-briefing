@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { DailyBriefing, Article, Term } from '@/lib/types'
+import StudyLookup from './components/StudyLookup'
+
+// ─── 학습 모드 / 언어 설정 저장 키 ────────────────────────────────────
+const LANG_KEY = 'briefing.lang'
+const STUDY_KEY = 'briefing.studyMode'
 
 // ─── 팔레트 (토스 컬러 시스템) ────────────────────────────────────────
 const PALETTE = [
@@ -217,6 +222,7 @@ function TermRow({ term, lang, accent }: { term: Term; lang: 'kr' | 'en'; accent
       </button>
       {open && (
         <p
+          data-study-text
           style={{
             paddingBottom: 12,
             paddingLeft: 15,
@@ -311,6 +317,7 @@ function ArticleCard({
 
         {/* 제목 */}
         <h2
+          data-study-text
           style={{
             fontSize: 17,
             fontWeight: 700,
@@ -323,6 +330,7 @@ function ArticleCard({
           {title}
         </h2>
         <p
+          data-study-text
           style={{
             fontSize: 12,
             color: '#C9D0D8',
@@ -339,6 +347,7 @@ function ArticleCard({
 
         {/* 요약 */}
         <p
+          data-study-text
           style={{
             fontSize: 14,
             color: '#4E5968',
@@ -446,6 +455,7 @@ function ArticleCard({
             {lang === 'kr' ? '왜 중요한가' : 'Why it matters'}
           </p>
           <p
+            data-study-text
             style={{
               fontSize: 13,
               color: '#4E5968',
@@ -657,7 +667,34 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [lang, setLang] = useState<'kr' | 'en'>('kr')
+  const [studyMode, setStudyMode] = useState(true)
   const [showPopup, setShowPopup] = useState(false)
+
+  // 저장해 둔 언어 / 학습 모드 설정 복원
+  useEffect(() => {
+    try {
+      const savedLang = window.localStorage.getItem(LANG_KEY)
+      if (savedLang === 'kr' || savedLang === 'en') setLang(savedLang)
+      setStudyMode(window.localStorage.getItem(STUDY_KEY) !== 'off')
+    } catch {
+      // 로컬스토리지를 못 쓰는 환경이면 기본값 그대로 간다
+    }
+  }, [])
+
+  const changeLang = (next: 'kr' | 'en') => {
+    setLang(next)
+    try {
+      window.localStorage.setItem(LANG_KEY, next)
+    } catch {}
+  }
+
+  const toggleStudyMode = () => {
+    const next = !studyMode
+    setStudyMode(next)
+    try {
+      window.localStorage.setItem(STUDY_KEY, next ? 'on' : 'off')
+    } catch {}
+  }
 
   useEffect(() => {
     fetch('/api/briefing')
@@ -761,6 +798,33 @@ export default function Home() {
             </p>
           </div>
 
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+
+          {/* 학습 모드 토글 */}
+          <button
+            onClick={toggleStudyMode}
+            title={studyMode ? '학습 모드 켜짐 — 긁으면 뜻이 떠요' : '학습 모드 꺼짐'}
+            aria-pressed={studyMode}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: 999,
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              fontSize: 15,
+              lineHeight: 1,
+              ...(studyMode
+                ? { backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }
+                : { backgroundColor: 'rgba(255,255,255,0.18)', filter: 'grayscale(1)', opacity: 0.75 }),
+            }}
+          >
+            📖
+          </button>
+
           {/* 언어 토글 pill */}
           <div
             style={{
@@ -774,7 +838,7 @@ export default function Home() {
             {(['kr', 'en'] as const).map(l => (
               <button
                 key={l}
-                onClick={() => setLang(l)}
+                onClick={() => changeLang(l)}
                 style={{
                   padding: '5px 14px',
                   borderRadius: 20,
@@ -800,11 +864,20 @@ export default function Home() {
               </button>
             ))}
           </div>
+          </div>
         </div>
       </header>
 
       {/* ── 메인 컨텐츠 ── */}
-      <main style={{ maxWidth: 576, margin: '0 auto', padding: '82px 16px 48px' }}>
+      {/* data-study-area 안에서 드래그한 텍스트만 사전 조회 대상이 된다 */}
+      <main
+        data-study-area
+        style={{
+          maxWidth: 576,
+          margin: '0 auto',
+          padding: `82px 16px ${studyMode ? 96 : 48}px`,
+        }}
+      >
 
         {/* 상단 정보 바 */}
         <div
@@ -819,6 +892,49 @@ export default function Home() {
               : 'Auto-updated by AI every morning at 9 AM KST'}
           </p>
         </div>
+
+        {/* 학습 모드 안내 */}
+        {studyMode && (
+          <div
+            data-study-ignore
+            style={{
+              marginBottom: 14,
+              padding: '13px 15px',
+              borderRadius: 14,
+              backgroundColor: '#191F28',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+            }}
+          >
+            <span style={{ fontSize: 15, lineHeight: 1.4, flexShrink: 0 }}>✏️</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#FFFFFF',
+                  letterSpacing: '-0.3px',
+                  marginBottom: 3,
+                }}
+              >
+                {lang === 'kr' ? '영어 공부 모드가 켜져 있어요' : 'Study mode is on'}
+              </p>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.62)',
+                  lineHeight: 1.65,
+                  letterSpacing: '-0.2px',
+                }}
+              >
+                {lang === 'kr'
+                  ? '단어·표현·문장을 드래그(폰에서는 길게 눌러 선택)하면 사전과 번역이 바로 떠요. 오른쪽 위 📖 로 끌 수 있어요.'
+                  : 'Drag any word, phrase, or sentence — long-press on mobile — and the dictionary pops up. Tap 📖 above to turn it off.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* 기사 수 + 시간 범위 카드 */}
         {briefing && (
@@ -1072,6 +1188,9 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* ── 드래그 사전 + 단어장 ── */}
+      <StudyLookup enabled={studyMode} />
     </div>
   )
 }
