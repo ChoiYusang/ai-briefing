@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateDailyGlossary } from '@/lib/generateGlossary'
+import { GLOSSARY_BUILDER, generateDailyGlossary } from '@/lib/generateGlossary'
 import { getBriefing, getGlossary, saveGlossary } from '@/lib/storage'
 import { DailyGlossary } from '@/lib/types'
 
@@ -20,7 +20,7 @@ export async function GET() {
   }
 
   const existing = await getGlossary(briefing.date)
-  if (existing) return NextResponse.json(existing)
+  if (existing && existing.builder === GLOSSARY_BUILDER) return NextResponse.json(existing)
 
   if (!inFlight) {
     if (lazyRuns >= LAZY_LIMIT) {

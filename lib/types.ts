@@ -95,6 +95,8 @@ export interface GlossarySentence {
 export interface DailyGlossary {
   date: string       // 대상 브리핑 날짜
   generatedAt: string
+  // 생성 로직/모델 버전. 코드가 바뀌면 올려서 그날 사전을 다시 만들게 한다.
+  builder?: number
   words: GlossaryWord[]
   phrases: GlossaryPhrase[]
   sentences: GlossarySentence[]

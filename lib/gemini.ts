@@ -2,18 +2,27 @@ import { GenerationConfig, GoogleGenerativeAI } from '@google/generative-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-// 브리핑 생성처럼 품질이 중요한 작업용 (앞에서부터 순서대로 시도)
+// 여기 적는 모델은 반드시 '현재 서비스 중'이어야 한다.
+// 은퇴한 모델을 적어 두면 폴백이 있는 척만 하고 실제로는 전부 404로 떨어진다.
+// (2.0 Flash 계열은 셧다운, 1.5 계열은 활성 목록에서 빠졌다 — 2026-09 확인)
+
+// 브리핑 생성처럼 품질이 중요한 작업용 (앞에서부터 순서대로 시도).
+// 하루 1콜이라 비용은 사실상 무의미하니 품질과 안정성만 본다.
 export const QUALITY_MODELS = [
-  'gemini-2.5-flash',
+  'gemini-2.5-flash', // 지금 프롬프트가 맞춰져 있는 기준 모델
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
   'gemini-2.5-pro',
-  'gemini-2.0-flash-exp',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
 ]
 
-// 사전 조회처럼 사용자가 기다리는 작업용 — 빠른 모델만, 폴백도 짧게
-export const FAST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+// 사전 조회·사전 생성용. 정형 JSON을 뱉는 단순 작업이라 Lite로 충분하고,
+// 2.5 Flash-Lite는 thinking이 기본 Off라 사고 토큰 요금도 붙지 않는다.
+// (출력 단가 $0.40/1M — 2.5 Flash의 $2.50 대비 1/6)
+export const FAST_MODELS = [
+  'gemini-2.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
+]
 
 export interface GenerateJsonOptions {
   label: string

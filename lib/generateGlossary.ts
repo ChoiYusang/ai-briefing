@@ -11,6 +11,10 @@ import {
 // 조회 때마다 Gemini를 부르지 않아도 되므로 지연이 사라지고, 비용이
 // 사용자 수와 무관하게 "하루 1회 고정"이 된다.
 
+// 사전 생성 모델이나 프롬프트를 바꾸면 이 값을 올린다 → 저장돼 있던 그날 사전을
+// 무시하고 새로 만든다 (안 올리면 다음 크론 전까지 옛 사전이 그대로 쓰인다)
+export const GLOSSARY_BUILDER = 2
+
 const MAX_WORDS = 550
 const WORD_BATCH = 70
 const SENTENCE_BATCH = 25
@@ -114,6 +118,7 @@ export async function generateDailyGlossary(briefing: DailyBriefing): Promise<Da
   return {
     date: briefing.date,
     generatedAt: new Date().toISOString(),
+    builder: GLOSSARY_BUILDER,
     words: wordResults.flatMap(r => r ?? []),
     phrases: phraseResult ?? [],
     sentences: sentenceResults.flatMap(r => r ?? []),
