@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchRecentAINews } from '@/lib/fetchNews'
 import { generateDailyBriefing } from '@/lib/generateBriefing'
-import { saveBriefing } from '@/lib/storage'
+import { generateDailyGlossary } from '@/lib/generateGlossary'
+import { saveBriefing, saveGlossary } from '@/lib/storage'
 
 export const maxDuration = 300
 
@@ -25,10 +26,25 @@ export async function GET(request: NextRequest) {
     await saveBriefing(briefing)
     console.log(`[cron] Saved briefing for ${briefing.date} (${briefing.articles.length} articles)`)
 
+    // 영어 학습용 사전은 부가 기능이다. 여기서 실패해도 브리핑은 이미 저장됐으니
+    // 크론 전체를 실패로 만들지 않는다 (조회는 /api/lookup 으로 폴백된다).
+    let glossaryWords = 0
+    try {
+      const glossary = await generateDailyGlossary(briefing)
+      await saveGlossary(glossary)
+      glossaryWords = glossary.words.length
+      console.log(
+        `[cron] Saved glossary: ${glossary.words.length} words, ${glossary.phrases.length} phrases, ${glossary.sentences.length} sentences`
+      )
+    } catch (err) {
+      console.error('[cron] Glossary generation failed (briefing is safe):', err)
+    }
+
     return NextResponse.json({
       success: true,
       date: briefing.date,
       articleCount: briefing.articles.length,
+      glossaryWords,
     })
   } catch (error) {
     console.error('[cron] Error:', error)

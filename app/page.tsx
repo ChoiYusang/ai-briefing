@@ -1190,7 +1190,7 @@ export default function Home() {
       </main>
 
       {/* ── 드래그 사전 + 단어장 ── */}
-      <StudyLookup enabled={studyMode} />
+      <StudyLookup enabled={studyMode} briefingDate={briefing?.date} />
     </div>
   )
 }

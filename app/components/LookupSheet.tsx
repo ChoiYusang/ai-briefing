@@ -10,6 +10,8 @@ export interface LookupState {
   status: 'loading' | 'done' | 'error'
   result: LookupResult | null
   message: string
+  // glossary = 미리 만들어 둔 오늘치 사전에서 즉시 꺼낸 결과 (네트워크 0)
+  source: 'glossary' | 'api'
 }
 
 const KIND_LABEL: Record<LookupKind, string> = {
@@ -32,16 +34,28 @@ export default function LookupSheet({
   saved,
   onSave,
   onRetry,
+  onExpand,
   onClose,
 }: {
   state: LookupState
   saved: boolean
   onSave: () => void
   onRetry: () => void
+  onExpand: () => void
   onClose: () => void
 }) {
   const { query, status, result, message } = state
   const isKorean = result?.direction === 'ko-en'
+  // 번역과 똑같은 한 줄뿐이면 '뜻' 섹션은 중복이라 접고, 품사만 헤더로 올린다
+  const showSenses =
+    !!result &&
+    result.senses.length > 0 &&
+    !(
+      result.senses.length === 1 &&
+      !result.senses[0].example &&
+      result.senses[0].meaningKr === result.translation
+    )
+  const headerPos = result && !showSenses ? result.senses[0]?.pos : null
   // 영어 쪽을 읽어 준다 — 영→한이면 긁은 원문, 한→영이면 번역 결과
   const speakTarget = isKorean ? result?.translation ?? '' : query
   const longQuery = query.length > 40
@@ -74,6 +88,21 @@ export default function LookupSheet({
               >
                 {result ? KIND_LABEL[result.kind] : '찾는 중'}
               </span>
+              {headerPos && (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    backgroundColor: '#F2F4F6',
+                    color: '#3182F6',
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
+                >
+                  {headerPos}
+                </span>
+              )}
               {result?.level && (
                 <span
                   style={{
@@ -209,6 +238,7 @@ export default function LookupSheet({
             </section>
 
             {/* 뜻 */}
+            {showSenses && (
             <section style={{ marginBottom: result.note || result.synonyms?.length ? 22 : 4 }}>
               <p style={LABEL_STYLE}>{result.kind === 'sentence' ? '끊어 읽기' : '뜻'}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -279,6 +309,7 @@ export default function LookupSheet({
                 ))}
               </div>
             </section>
+            )}
 
             {/* 학습 포인트 */}
             {result.note && (
@@ -329,6 +360,27 @@ export default function LookupSheet({
                   ))}
                 </div>
               </section>
+            )}
+
+            {state.source === 'glossary' && (
+              <button
+                onClick={onExpand}
+                style={{
+                  marginTop: 20,
+                  width: '100%',
+                  padding: '11px 0',
+                  borderRadius: 12,
+                  border: '1px solid #E5E8EB',
+                  backgroundColor: '#FFFFFF',
+                  color: '#4E5968',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  letterSpacing: '-0.2px',
+                  cursor: 'pointer',
+                }}
+              >
+                예문 · 유의어까지 자세히 보기
+              </button>
             )}
           </>
         )}

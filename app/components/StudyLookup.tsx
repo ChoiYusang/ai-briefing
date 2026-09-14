@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { GlossaryIndex, loadGlossary, matchGlossary } from '@/lib/glossaryClient'
 import { detectDirection, isLookupWorthy, lookupKey, MAX_QUERY_LENGTH } from '@/lib/lookupShared'
 import { LookupResult, WordbookEntry } from '@/lib/types'
 import {
@@ -15,7 +16,7 @@ import LookupSheet, { LookupState } from './LookupSheet'
 import WordbookSheet from './WordbookSheet'
 
 // 드래그가 끝난 뒤 이 시간만큼 조용하면 조회한다 (스크롤 중 스치는 선택 걸러내기)
-const SELECTION_DEBOUNCE = 260
+const SELECTION_DEBOUNCE = 180
 const MAX_CONTEXT = 800
 
 const CLOSED: LookupState = {
@@ -24,6 +25,7 @@ const CLOSED: LookupState = {
   status: 'loading',
   result: null,
   message: '',
+  source: 'api',
 }
 
 // 앞뒤에 딸려 온 따옴표·마침표 같은 기호를 떼어낸다.
@@ -55,10 +57,17 @@ function contextOf(node: Node | null): string {
   return (block?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_CONTEXT)
 }
 
-export default function StudyLookup({ enabled }: { enabled: boolean }) {
+export default function StudyLookup({
+  enabled,
+  briefingDate,
+}: {
+  enabled: boolean
+  briefingDate?: string
+}) {
   const [state, setState] = useState<LookupState>(CLOSED)
   const [entries, setEntries] = useState<WordbookEntry[]>([])
   const [wordbookOpen, setWordbookOpen] = useState(false)
+  const glossary = useRef<GlossaryIndex | null>(null)
   const requestId = useRef(0)
   const lastContext = useRef('')
 
@@ -66,19 +75,41 @@ export default function StudyLookup({ enabled }: { enabled: boolean }) {
     setEntries(loadWordbook())
   }, [])
 
-  const runLookup = useCallback(async (query: string, context: string) => {
+  // 오늘치 사전을 미리 받아 둔다 — 단어 조회가 네트워크 없이 즉시 뜨는 근거
+  useEffect(() => {
+    if (!enabled || glossary.current) return
+    let cancelled = false
+    loadGlossary(briefingDate).then(index => {
+      if (!cancelled && index) glossary.current = index
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [enabled, briefingDate])
+
+  const runLookup = useCallback(async (query: string, context: string, force = false) => {
     const direction = detectDirection(query)
 
-    // 1차 캐시 — 전에 찾아본 표현은 네트워크 없이 바로 뜬다
-    const cached = readCachedLookup(query, direction)
-    if (cached) {
-      requestId.current += 1
-      setState({ open: true, query, status: 'done', result: cached, message: '' })
-      return
+    // 1차 — 미리 만들어 둔 오늘치 사전. 여기서 맞으면 지연이 0이다.
+    if (!force) {
+      const local = matchGlossary(glossary.current, query)
+      if (local) {
+        requestId.current += 1
+        setState({ open: true, query, status: 'done', result: local, message: '', source: 'glossary' })
+        return
+      }
+
+      // 2차 — 전에 찾아본 표현
+      const cached = readCachedLookup(query, direction)
+      if (cached) {
+        requestId.current += 1
+        setState({ open: true, query, status: 'done', result: cached, message: '', source: 'api' })
+        return
+      }
     }
 
     const id = ++requestId.current
-    setState({ open: true, query, status: 'loading', result: null, message: '' })
+    setState({ open: true, query, status: 'loading', result: null, message: '', source: 'api' })
 
     try {
       const res = await fetch('/api/lookup', {
@@ -99,7 +130,14 @@ export default function StudyLookup({ enabled }: { enabled: boolean }) {
       }
 
       writeCachedLookup(data as LookupResult)
-      setState({ open: true, query, status: 'done', result: data as LookupResult, message: '' })
+      setState({
+        open: true,
+        query,
+        status: 'done',
+        result: data as LookupResult,
+        message: '',
+        source: 'api',
+      })
     } catch {
       if (id !== requestId.current) return
       setState(s => ({
@@ -162,7 +200,8 @@ export default function StudyLookup({ enabled }: { enabled: boolean }) {
         state={state}
         saved={alreadySaved}
         onSave={handleSave}
-        onRetry={() => runLookup(state.query, lastContext.current)}
+        onRetry={() => runLookup(state.query, lastContext.current, true)}
+        onExpand={() => runLookup(state.query, lastContext.current, true)}
         onClose={closeSheet}
       />
 
