@@ -1,4 +1,4 @@
-import { FAST_MODELS, generateJson } from './gemini'
+import { FAST_MODELS, QUALITY_MODELS, generateJson } from './gemini'
 import {
   DailyBriefing,
   DailyGlossary,
@@ -13,7 +13,7 @@ import {
 
 // 사전 생성 모델이나 프롬프트를 바꾸면 이 값을 올린다 → 저장돼 있던 그날 사전을
 // 무시하고 새로 만든다 (안 올리면 다음 크론 전까지 옛 사전이 그대로 쓰인다)
-export const GLOSSARY_BUILDER = 2
+export const GLOSSARY_BUILDER = 3
 
 const MAX_WORDS = 550
 const WORD_BATCH = 70
@@ -156,7 +156,9 @@ ${list}
 - kr: **표제어 형태의 뜻.** 동사는 '~하다', 형용사는 '~한'. 쉼표로 최대 2개까지.
       문장에 맞춰 활용하지 않는다("경계하게 되었어요" ✕ → "경계하는, 조심하는" ○).
       사람·회사·제품 이름이면 한글 표기와 정체를 짧게(예: "앤트로픽(AI 기업)").
-- ctx: 위 문장에서 쓰인 뜻을 한국어 한 줄로. 표제어 뜻과 사실상 같으면 null.
+- ctx: **되도록 채운다.** 위 문장에서 그 단어가 실제로 무엇을 가리키는지 한국어 한 줄로.
+      (예: gaining → "인기나 명성을 얻고 있다는 뜻이에요")
+      표제어 뜻을 그대로 반복하는 것 말고는 쓸 말이 정말 없을 때만 null.
 - 위에 준 단어를 **하나도 빠짐없이** 모두 포함한다. 순서도 그대로.
 - 모든 한국어는 친근한 "~해요" 말투. 짧고 쉽게.`
 
@@ -205,9 +207,11 @@ ${fullText.slice(0, 9000)}
 - 단어 하나짜리는 넣지 않는다. 직역해도 뻔한 조합(예: "new model")도 넣지 않는다.
 - 모든 한국어는 친근한 "~해요" 말투.`
 
+  // 숙어는 하루 한 번, 출력도 1~2k 토큰뿐이라 비용이 사실상 0이다.
+  // Lite는 관용구를 13개쯤 놓쳐서 여기만 상위 모델을 쓴다.
   const parsed = await generateJson(prompt, {
     label: 'glossary:phrases',
-    models: FAST_MODELS,
+    models: QUALITY_MODELS,
     maxRetries: 1,
     generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
     validate: p => {
