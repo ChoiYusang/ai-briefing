@@ -15,7 +15,8 @@ import {
 import LookupSheet, { LookupState } from './LookupSheet'
 import WordbookSheet from './WordbookSheet'
 
-// 드래그가 끝난 뒤 이 시간만큼 조용하면 조회한다 (스크롤 중 스치는 선택 걸러내기)
+// 미리 만들어 둔 사전에 없어서 Gemini를 불러야 할 때만 이만큼 기다린다.
+// (스크롤 중 스치는 선택으로 API를 때리지 않으려는 장치라, 공짜인 사전 히트에는 쓰지 않는다)
 const SELECTION_DEBOUNCE = 180
 const MAX_CONTEXT = 800
 
@@ -68,6 +69,7 @@ export default function StudyLookup({
   const [entries, setEntries] = useState<WordbookEntry[]>([])
   const [wordbookOpen, setWordbookOpen] = useState(false)
   const glossary = useRef<GlossaryIndex | null>(null)
+  const glossaryLoading = useRef<Promise<GlossaryIndex | null> | null>(null)
   const requestId = useRef(0)
   const lastContext = useRef('')
 
@@ -79,9 +81,11 @@ export default function StudyLookup({
   useEffect(() => {
     if (!enabled || glossary.current) return
     let cancelled = false
-    loadGlossary(briefingDate).then(index => {
+    const pending = loadGlossary(briefingDate).then(index => {
       if (!cancelled && index) glossary.current = index
+      return index
     })
+    glossaryLoading.current = pending
     return () => {
       cancelled = true
     }
@@ -90,8 +94,12 @@ export default function StudyLookup({
   const runLookup = useCallback(async (query: string, context: string, force = false) => {
     const direction = detectDirection(query)
 
-    // 1차 — 미리 만들어 둔 오늘치 사전. 여기서 맞으면 지연이 0이다.
+    // 1차 — 미리 만들어 둔 오늘치 사전. (동기 히트는 이미 호출부에서 걸러졌고,
+    // 여기 오는 건 사전을 아직 받는 중이던 경우다. 잠깐 기다렸다 다시 맞춰 본다.)
     if (!force) {
+      if (!glossary.current && glossaryLoading.current) {
+        await glossaryLoading.current.catch(() => null)
+      }
       const local = matchGlossary(glossary.current, query)
       if (local) {
         requestId.current += 1
@@ -156,18 +164,27 @@ export default function StudyLookup({
 
     const handle = () => {
       if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        const selection = window.getSelection()
-        if (!selection || selection.isCollapsed) return
 
-        const query = normalizeSelection(selection.toString())
-        if (!isLookupWorthy(query) || selection.toString().trim().length > MAX_QUERY_LENGTH) return
-        if (!withinStudyArea(selection.anchorNode)) return
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed) return
 
-        const context = contextOf(selection.anchorNode)
-        lastContext.current = context
-        runLookup(query, context)
-      }, SELECTION_DEBOUNCE)
+      const query = normalizeSelection(selection.toString())
+      if (!isLookupWorthy(query) || selection.toString().trim().length > MAX_QUERY_LENGTH) return
+      if (!withinStudyArea(selection.anchorNode)) return
+
+      const context = contextOf(selection.anchorNode)
+      lastContext.current = context
+
+      // 사전에 이미 있으면 네트워크도 비용도 없으니 기다릴 이유가 없다 — 바로 띄운다
+      const instant = matchGlossary(glossary.current, query)
+      if (instant) {
+        requestId.current += 1
+        setState({ open: true, query, status: 'done', result: instant, message: '', source: 'glossary' })
+        return
+      }
+
+      // Gemini를 불러야 하는 경우만 잠깐 기다렸다 보낸다
+      timer = setTimeout(() => runLookup(query, context), SELECTION_DEBOUNCE)
     }
 
     document.addEventListener('mouseup', handle)
