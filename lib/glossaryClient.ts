@@ -1,5 +1,6 @@
 'use client'
 
+import { normalizeIpa } from './lookupShared'
 import { DailyGlossary, LookupResult } from './types'
 
 // 미리 만들어 둔 사전을 조회하기 좋은 형태로 바꾸고, 드래그한 표현을 맞춰 본다.
@@ -38,7 +39,7 @@ export function buildGlossaryIndex(glossary: DailyGlossary): GlossaryIndex {
       direction: 'en-ko',
       translation: entry.kr,
       literal: null,
-      pronunciation: entry.p ?? null,
+      pronunciation: normalizeIpa(entry.p),
       senses,
       note: entry.base && entry.base !== entry.w ? `원형은 ${entry.base} 예요.` : null,
       synonyms: [],

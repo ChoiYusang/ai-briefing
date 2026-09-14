@@ -1,4 +1,5 @@
 import { FAST_MODELS, QUALITY_MODELS, generateJson } from './gemini'
+import { normalizeIpa } from './lookupShared'
 import {
   DailyBriefing,
   DailyGlossary,
@@ -178,7 +179,7 @@ ${list}
     .map(e => ({
       w: String(e.w).toLowerCase().trim(),
       base: clean(e.base),
-      p: clean(e.p),
+      p: normalizeIpa(clean(e.p)),
       pos: clean(e.pos),
       kr: String(e.kr).trim(),
       ctx: clean(e.ctx),

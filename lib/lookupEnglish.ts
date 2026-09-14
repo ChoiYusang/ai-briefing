@@ -1,5 +1,5 @@
 import { FAST_MODELS, generateJson } from './gemini'
-import { detectDirection, guessKind, lookupKey, normalizeQuery } from './lookupShared'
+import { detectDirection, guessKind, lookupKey, normalizeIpa, normalizeQuery } from './lookupShared'
 import { LookupDirection, LookupKind, LookupResult, LookupSense } from './types'
 
 const MAX_CONTEXT_LENGTH = 800
@@ -69,7 +69,7 @@ function shape(query: string, direction: LookupDirection, parsed: any): LookupRe
     translation,
     // 직역이 자연 번역과 사실상 같으면 중복이라 버린다
     literal: literal && literal !== translation ? literal : null,
-    pronunciation: str(parsed?.pronunciation),
+    pronunciation: normalizeIpa(str(parsed?.pronunciation)),
     senses: senses.length ? senses : [{ pos: null, meaningKr: translation }],
     note: str(parsed?.note),
     synonyms: (Array.isArray(parsed?.synonyms) ? parsed.synonyms : [])
