@@ -1,4 +1,5 @@
-import { FAST_MODELS, QUALITY_MODELS, generateJson } from './gemini'
+import { ResponseSchema, SchemaType } from '@google/generative-ai'
+import { FAST_MODELS, QUALITY_MODELS, ThinkingLevel, generateJson } from './gemini'
 import { normalizeIpa } from './lookupShared'
 import {
   DailyBriefing,
@@ -15,6 +16,10 @@ import {
 // 사전 생성 모델이나 프롬프트를 바꾸면 이 값을 올린다 → 저장돼 있던 그날 사전을
 // 무시하고 새로 만든다 (안 올리면 다음 크론 전까지 옛 사전이 그대로 쓰인다)
 export const GLOSSARY_BUILDER = 3
+
+// 단어·문장 배치의 thinking 수준. 뜻풀이·번역은 추론이 거의 필요 없으니
+// 폴백 모델(2.5 Flash 등)로 넘어가도 사고 토큰이 붙지 않게 최소로 둔다.
+export const GLOSSARY_THINKING: ThinkingLevel | undefined = 'minimal'
 
 const MAX_WORDS = 550
 const WORD_BATCH = 70
@@ -93,7 +98,10 @@ export function extractWords(sentences: string[]): { word: string; sentence: str
   return [...seen.entries()].slice(0, MAX_WORDS).map(([word, sentence]) => ({ word, sentence }))
 }
 
-export async function generateDailyGlossary(briefing: DailyBriefing): Promise<DailyGlossary> {
+export async function generateDailyGlossary(
+  briefing: DailyBriefing,
+  { thinking = GLOSSARY_THINKING }: { thinking?: ThinkingLevel } = {}
+): Promise<DailyGlossary> {
   const blocks = collectEnglishText(briefing)
   const sentences = blocks.flatMap(sentencesOf)
   const words = extractWords(sentences)
@@ -109,10 +117,10 @@ export async function generateDailyGlossary(briefing: DailyBriefing): Promise<Da
 
   // 그룹을 순서대로 돌려 동시 호출이 CONCURRENCY를 넘지 않게 한다 (rate limit 여유)
   const wordResults = await mapLimit(wordBatches, CONCURRENCY, batch =>
-    safely('words', () => runWordBatch(batch))
+    safely('words', () => runWordBatch(batch, thinking))
   )
   const sentenceResults = await mapLimit(sentenceBatches, CONCURRENCY, batch =>
-    safely('sentences', () => runSentenceBatch(batch))
+    safely('sentences', () => runSentenceBatch(batch, thinking))
   )
   const phraseResult = await safely('phrases', () => runPhraseBatch(fullText))
 
@@ -136,7 +144,8 @@ async function safely<T>(label: string, fn: () => Promise<T>): Promise<T | null>
 }
 
 async function runWordBatch(
-  batch: { word: string; sentence: string }[]
+  batch: { word: string; sentence: string }[],
+  thinking?: ThinkingLevel
 ): Promise<GlossaryWord[]> {
   const list = batch.map(({ word, sentence }) => `- ${word}  (문장: ${sentence})`).join('\n')
 
@@ -167,7 +176,12 @@ ${list}
     label: 'glossary:words',
     models: FAST_MODELS,
     maxRetries: 1,
-    generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: WORD_SCHEMA,
+      temperature: 0.2,
+    },
+    thinking,
     validate: p => {
       if (!Array.isArray(p?.entries) || p.entries.length === 0) throw new Error('no entries')
     },
@@ -232,7 +246,10 @@ ${fullText.slice(0, 9000)}
     .filter(e => e.w.split(' ').length >= 2 && haystack.includes(e.w))
 }
 
-async function runSentenceBatch(batch: string[]): Promise<GlossarySentence[]> {
+async function runSentenceBatch(
+  batch: string[],
+  thinking?: ThinkingLevel
+): Promise<GlossarySentence[]> {
   const list = batch.map((s, i) => `${i + 1}. ${s}`).join('\n')
 
   const prompt = `아래 영어 문장들을 한국인 독자가 읽기 좋은 자연스러운 한국어로 번역해 줘.
@@ -251,7 +268,12 @@ ${list}
     label: 'glossary:sentences',
     models: FAST_MODELS,
     maxRetries: 1,
-    generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: SENTENCE_SCHEMA,
+      temperature: 0.2,
+    },
+    thinking,
     validate: p => {
       if (!Array.isArray(p?.entries) || p.entries.length === 0) throw new Error('no entries')
     },
@@ -265,6 +287,51 @@ ${list}
     out.push({ en: batch[index], kr: e.kr.trim() })
   }
   return out
+}
+
+// 응답 스키마를 강제한다. 없으면 Lite가 한국어 값의 따옴표를 빠뜨리는 등
+// 깨진 JSON을 종종 내서(배치 8개 중 1~2개) 재시도 → 2.5 Flash 폴백으로 비용이 불어났다.
+const nullableString = { type: SchemaType.STRING, nullable: true } as const
+
+const WORD_SCHEMA: ResponseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    entries: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          w: { type: SchemaType.STRING },
+          base: nullableString,
+          p: nullableString,
+          pos: nullableString,
+          kr: { type: SchemaType.STRING },
+          // nullable로 두면 Lite가 null을 훨씬 자주 고른다(409개 중 121개 누락) → 필수로 둔다
+          ctx: { type: SchemaType.STRING },
+        },
+        required: ['w', 'kr', 'ctx'],
+      },
+    },
+  },
+  required: ['entries'],
+}
+
+const SENTENCE_SCHEMA: ResponseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    entries: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          i: { type: SchemaType.INTEGER },
+          kr: { type: SchemaType.STRING },
+        },
+        required: ['i', 'kr'],
+      },
+    },
+  },
+  required: ['entries'],
 }
 
 function clean(v: any): string | null {

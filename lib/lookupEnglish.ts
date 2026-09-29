@@ -32,6 +32,7 @@ export async function lookupEnglish(rawText: string, rawContext = ''): Promise<L
     models: FAST_MODELS,
     maxRetries: 1,
     generationConfig: { responseMimeType: 'application/json', temperature: 0.3 },
+    thinking: 'minimal',
     validate: p => {
       if (typeof p?.translation !== 'string' || !p.translation.trim()) {
         throw new Error('Response has no translation')
