@@ -29,6 +29,13 @@ export async function getBriefing(): Promise<DailyBriefing | null> {
 
 // ─── 미리 만들어 둔 사전 ──────────────────────────────────────────────
 
+// 같은 경로를 덮어쓰면 블롭 CDN이 한동안 옛 내용을 준다. 실제로 사전을 다시 만든 직후
+// 다른 인스턴스가 옛 빈 사전을 읽고 한 번 더 빌드했다. list()는 캐시되지 않으니
+// 거기서 받은 업로드 시각을 붙여 항상 최신 버전을 받는다.
+function freshUrl(blob: { url: string; uploadedAt: Date }) {
+  return `${blob.url}?v=${new Date(blob.uploadedAt).getTime()}`
+}
+
 export async function saveGlossary(glossary: DailyGlossary): Promise<void> {
   await put(`${GLOSSARY_PREFIX}${glossary.date}.json`, JSON.stringify(glossary), {
     access: 'public',
@@ -43,7 +50,7 @@ export async function getGlossary(date: string): Promise<DailyGlossary | null> {
     const match = blobs.find(b => b.pathname === `${GLOSSARY_PREFIX}${date}.json`)
     if (!match) return null
 
-    const res = await fetch(match.url, { cache: 'no-store' })
+    const res = await fetch(freshUrl(match), { cache: 'no-store' })
     if (!res.ok) return null
     return res.json()
   } catch (err) {
@@ -67,7 +74,7 @@ export async function getGlossaryAttempts(date: string): Promise<number> {
     const { blobs } = await list({ prefix: path })
     const match = blobs.find(b => b.pathname === path)
     if (!match) return 0
-    const res = await fetch(match.url, { cache: 'no-store' })
+    const res = await fetch(freshUrl(match), { cache: 'no-store' })
     if (!res.ok) return 0
     const data = await res.json()
     return typeof data?.count === 'number' ? data.count : 0
