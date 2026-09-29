@@ -124,6 +124,12 @@ export async function generateDailyGlossary(
   )
   const phraseResult = await safely('phrases', () => runPhraseBatch(fullText))
 
+  // 배치가 전부 실패했으면(결제 오류·장애) 빈 사전을 완성본처럼 저장하지 않는다.
+  // 저장되면 그날은 재생성도 안 되고 모든 드래그가 /api/lookup 으로 빠진다.
+  if (wordResults.every(r => r === null)) {
+    throw new Error('All word batches failed — not saving an empty glossary')
+  }
+
   return {
     date: briefing.date,
     generatedAt: new Date().toISOString(),

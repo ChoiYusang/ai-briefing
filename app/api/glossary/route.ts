@@ -26,7 +26,10 @@ export async function GET() {
   }
 
   const existing = await getGlossary(briefing.date)
-  if (existing && existing.builder === GLOSSARY_BUILDER) return NextResponse.json(existing)
+  // 단어가 하나도 없는 사전은 실패한 빌드의 흔적이라 없는 것으로 본다
+  if (existing && existing.builder === GLOSSARY_BUILDER && existing.words.length > 0) {
+    return NextResponse.json(existing)
+  }
 
   if (!inFlight) {
     inFlight = buildAndSave(briefing.date)
